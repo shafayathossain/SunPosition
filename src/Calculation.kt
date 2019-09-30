@@ -35,7 +35,11 @@ fun main() {
     val sunriseTime = getSunriseTimeInDay(hASunrise, solarNoonTime)
     val sunsetTime = getSunsetTimeInDay(hASunrise, solarNoonTime)
     val trueSolarTime = getTrueSolarTimeInMinutes(longitude, timeZone, timeInDay, equationOfTime)
-    val hourAngle = getHourAngle(trueSolarTime)
+    val hourAngle = getHourAngleInDegree(trueSolarTime)
+    val zenithAngle = getZenithAngleInDegree(latitude, sunDeclin, hourAngle)
+    val solarElevationAngle = getSolarElevationAngleInDegree(zenithAngle)
+    val approxAtmosphericRefraction = getApproxAtmosphericRefractionInDegree(solarElevationAngle)
+    val correctedSolarElevation = getSolarElevationCorrectedFromAtmRefractionInDegree(solarElevationAngle, approxAtmosphericRefraction)
 }
 
 fun takeInput(): Date {
@@ -57,7 +61,6 @@ fun getJulianDay(year: Int, month: Int, day: Int, timeInDay: Double, timeZone: D
     val e = 365.25 * (year + 4716.0)
     val f = 30.6001 * (month + 1.0)
     val julianDay = c + day + e + f - 1524.5 + timeInDay + timeZone / 24.0
-    println(julianDay)
     return julianDay
 }
 
@@ -184,8 +187,36 @@ fun getTrueSolarTimeInMinutes(longitude: Double, timeZone: Double, timeInDay: Do
     return trueSolarTime
 }
 
-fun getHourAngle(truSolarTime: Double): Double {
+fun getHourAngleInDegree(truSolarTime: Double): Double {
     val hourAngle = if(truSolarTime/4 < 0) truSolarTime / 4 + 180 else truSolarTime / 4 - 180
     println(hourAngle)
     return hourAngle
+}
+
+fun getZenithAngleInDegree(latitude: Double, sunDeclinInDegree: Double, hourAngleInDegree: Double): Double {
+    val zenithAngle = toDegrees(acos(sin(toRadians(latitude)) * sin(toRadians(sunDeclinInDegree)) +
+            cos(toRadians(latitude)) * cos(toRadians(sunDeclinInDegree)) * cos(toRadians(hourAngleInDegree))))
+    println(zenithAngle)
+    return zenithAngle
+}
+
+fun getSolarElevationAngleInDegree(zenithAngle: Double): Double {
+    val solarElevation = 90 - zenithAngle
+    println(solarElevation)
+    return solarElevation
+}
+
+fun getApproxAtmosphericRefractionInDegree(solarElevationAngle: Double): Double {
+    val approxAtmosphericRefraction = if(solarElevationAngle > 85) 0.0
+        else if(solarElevationAngle>5) 58.1/tan(toRadians(solarElevationAngle))-0.07/pow(tan(toRadians(solarElevationAngle)), 3.0) + 0.000086/ pow(tan(toRadians(solarElevationAngle)),5.0 )
+        else if(solarElevationAngle>-0.575) 1735 + solarElevationAngle * (-518.2 + solarElevationAngle * (103.4 + solarElevationAngle * (-12.79 + solarElevationAngle*0.711)))
+        else -20.772 / tan(toRadians(solarElevationAngle)) / 3600.0
+    println(approxAtmosphericRefraction)
+    return approxAtmosphericRefraction
+}
+
+fun getSolarElevationCorrectedFromAtmRefractionInDegree(solarElevationAngle: Double, approxAtmosphericRefraction: Double): Double {
+    val correctedSolarElevation = solarElevationAngle + approxAtmosphericRefraction
+    println(correctedSolarElevation)
+    return correctedSolarElevation
 }
